@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Block Shooter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #1a1a1a;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            border: 2px solid #444;
+            display: block;
+            margin: 0 auto;
+            background: #000;
+            cursor: none;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .game-ui {
+            width: 800px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            color: white;
+        }
+        .health-container {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff3434, #ff5c5c);
+            transition: width 0.3s ease;
+        }
+        .round-display {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+        .restart-button {
+            position: absolute;
+            left: 50%;
+            top: 60%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 24px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+            transition: background 0.3s;
+        }
+        .restart-button:hover {
+            background: #27ae60;
+        }
+        .customization-panel {
+            width: 800px;
+            margin: 20px auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-picker input[type="color"] {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .color-picker label {
+            font-size: 18px;
+        }
+        .name-prompt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .name-prompt {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            text-align: center;
+        }
+        .name-prompt input {
+            padding: 10px;
+            font-size: 18px;
+            margin: 10px 0;
+            background: #333;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            width: 200px;
+        }
+        .name-prompt button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .name-prompt button:hover {
+            background: #27ae60;
+        }
+        .name-prompt h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        .leaderboard {
+            width: 800px;
+            margin: 20px auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+        }
+        .leaderboard h2 {
+            text-align: center;
+            margin: 0 0 15px 0;
+            color: #ffcc00;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        .leaderboard-table th {
+            color: #2ecc71;
+        }
+        .leaderboard-table tr:last-child td {
+            border-bottom: none;
+        }
+        .game-title {
+            color: #00ff66;
+            font-size: 48px;
+            text-shadow: 0 0 20px rgba(0, 255, 102, 0.5),
+                         0 0 40px rgba(0, 255, 102, 0.3);
+            margin-bottom: 30px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-family: 'Orbitron', sans-serif;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 20px rgba(0, 255, 102, 0.5),
+                             0 0 40px rgba(0, 255, 102, 0.3);
+            }
+            to {
+                text-shadow: 0 0 30px rgba(0, 255, 102, 0.8),
+                             0 0 50px rgba(0, 255, 102, 0.5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="name-prompt-overlay" id="namePrompt">
+        <div class="name-prompt">
+            <div class="game-title">Darius The Destroyer</div>
+            <h2>Enter Your Name</h2>
+            <input type="text" id="playerName" placeholder="Your name">
+            <br>
+            <button onclick="startGame()">Start Game</button>
+        </div>
+    </div>
+    <div class="game-ui">
+        <div class="health-container">
+            <div class="health-bar">
+                <div class="health-fill" style="width: 100%"></div>
+            </div>
+            <div id="health">Health: 100/150</div>
+        </div>
+        <div class="round-display">
+            <span id="playerNameDisplay"></span>
+            <span id="round">Round: 1</span>
+        </div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="customization-panel">
+        <div class="color-picker">
+            <label for="characterColor">Character Color:</label>
+            <input type="color" id="characterColor" value="#4287f5">
+        </div>
+        <div class="color-picker">
+            <label for="bulletColor">Bullet Color:</label>
+            <input type="color" id="bulletColor" value="#ffff00">
+        </div>
+    </div>
+    <div class="leaderboard">
+        <h2>Leaderboard</h2>
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Round</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+            </tbody>
+        </table>
+    </div>
+    <button id="restartButton" class="restart-button">Restart Game</button>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const healthDisplay = document.getElementById('health');
+        const roundDisplay = document.getElementById('round');
+
+        // Game constants
+        const PLAYER_WIDTH = 50;
+        const PLAYER_HEIGHT = 50;
+        const BLOCK_WIDTH = 30;
+        const BLOCK_HEIGHT = 30;
+        const BULLET_WIDTH = 5;
+        const BULLET_HEIGHT = 10;
+        const PLAYER_SPEED = 5;
+        const BLOCK_SPEED = 3;
+        const BULLET_SPEED = 7;
+        const GUN_WIDTH = 20;
+        const GUN_HEIGHT = 10;
+        const PARTICLE_COUNT = 15;  // Number of particles per explosion
+        const PARTICLE_SPEED = 5;   // Speed of particles
+        const PARTICLE_LIFE = 30;   // How long particles last in frames
+        const FIRE_RATE = 250; // Time in milliseconds between shots (250ms = 4 shots per second)
+
+        // Game state
+        let currentRound = 1;
+        let blocksInRound = 1;
+        let blocksDestroyed = 0;
+        let gameOver = false;
+        let isRightMouseDown = false;
+        let particles = [];
+        let lastShotTime = 0;  // Track when the last shot was fired
+        let characterColor = '#4287f5';
+        let bulletColor = '#ffff00';
+        let playerName = '';
+        let gameStarted = false;
+
+        // Game objects
+        const player = {
+            x: canvas.width / 2 - PLAYER_WIDTH / 2,
+            y: canvas.height - PLAYER_HEIGHT - 10,
+            width: PLAYER_WIDTH,
+            height: PLAYER_HEIGHT,
+            health: 100,
+            speed: PLAYER_SPEED,
+            gun: {
+                x: 0,
+                y: 0,
+                width: GUN_WIDTH,
+                height: GUN_HEIGHT,
+                angle: 0
+            }
+        };
+
+        let blocks = [];
+        let bullets = [];
+        let keys = {};
+
+        // Add these variables after other game constants
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Track mouse for gun rotation
+        document.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            // Calculate angle between gun and mouse
+            const dx = mouseX - (player.x + PLAYER_WIDTH/2);
+            const dy = mouseY - (player.y + PLAYER_HEIGHT/2);
+            player.gun.angle = Math.atan2(dy, dx);
+        });
+
+        function shootBullet() {
+            const currentTime = Date.now();
+            if (currentTime - lastShotTime < FIRE_RATE) return; // Don't shoot if cooldown isn't finished
+            
+            lastShotTime = currentTime;
+            
+            const gunCenter = {
+                x: player.x + PLAYER_WIDTH/2,
+                y: player.y + PLAYER_HEIGHT/2
+            };
+            
+            // Calculate direction vector
+            const dx = mouseX - gunCenter.x;
+            const dy = mouseY - gunCenter.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const normalizedDx = dx / length;
+            const normalizedDy = dy / length;
+            
+            // Spawn bullet at gun tip
+            const gunLength = GUN_WIDTH;
+            const bulletX = gunCenter.x + normalizedDx * gunLength;
+            const bulletY = gunCenter.y + normalizedDy * gunLength;
+            
+            bullets.push({
+                x: bulletX,
+                y: bulletY,
+                width: BULLET_WIDTH,
+                height: BULLET_HEIGHT,
+                angle: player.gun.angle,
+                speed: BULLET_SPEED,
+                dx: normalizedDx,
+                dy: normalizedDy
+            });
+        }
+
+        // Add this function to calculate simultaneous blocks based on round
+        function getSimultaneousBlocks(round) {
+            // Start increasing at round 3, increase every 2 rounds
+            if (round < 3) return 1;
+            return 1 + Math.floor((round - 1) / 2);
+        }
+
+        // Modify the spawnBlock function
+        function spawnBlock() {
+            const simultaneousBlocks = getSimultaneousBlocks(currentRound);
+            
+            // Only spawn if we haven't reached the limit for this round
+            if (blocks.length + simultaneousBlocks <= blocksInRound) {
+                // Spawn multiple blocks with different x positions
+                for (let i = 0; i < simultaneousBlocks; i++) {
+                    let newX;
+                    let attempts = 0;
+                    const minDistance = BLOCK_WIDTH * 2; // Minimum distance between blocks
+                    
+                    // Try to find a position not too close to other blocks
+                    do {
+                        newX = Math.random() * (canvas.width - BLOCK_WIDTH);
+                        attempts++;
+                    } while (
+                        blocks.some(block => Math.abs(block.x - newX) < minDistance) && 
+                        attempts < 10
+                    );
+
+                    blocks.push({
+                        x: newX,
+                        y: -BLOCK_HEIGHT,
+                        width: BLOCK_WIDTH,
+                        height: BLOCK_HEIGHT,
+                        bounced: false
+                    });
+                }
+            }
+        }
+
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function drawCharacter(x, y) {
+            // Draw body
+            ctx.fillStyle = characterColor;  // Use the custom color
+            ctx.fillRect(x, y, PLAYER_WIDTH, PLAYER_HEIGHT);
+            
+            // Draw face details
+            ctx.fillStyle = 'white';
+            // Eyes
+            ctx.fillRect(x + 10, y + 15, 8, 8);
+            ctx.fillRect(x + 32, y + 15, 8, 8);
+            // Mouth
+            ctx.fillRect(x + 15, y + 35, 20, 3);
+        }
+
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const angle = (Math.PI * 2 / PARTICLE_COUNT) * i;
+                const speed = PARTICLE_SPEED * (0.5 + Math.random() * 0.5);
+                const colors = ['#ff9933', '#ff6600', '#ff3300', '#ffcc00'];
+                particles.push({
+                    x: x,
+                    y: y,
+                    dx: Math.cos(angle) * speed,
+                    dy: Math.sin(angle) * speed,
+                    life: PARTICLE_LIFE,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: 4 + Math.random() * 4
+                });
+            }
+        }
+
+        function updateHealthDisplay() {
+            const healthFill = document.querySelector('.health-fill');
+            const percentage = (player.health / 150) * 100;
+            healthFill.style.width = `${percentage}%`;
+            
+            // Change health bar color based on health level
+            if (percentage < 30) {
+                healthFill.style.background = 'linear-gradient(90deg, #ff0000, #ff3434)';
+            } else if (percentage < 60) {
+                healthFill.style.background = 'linear-gradient(90deg, #ffa500, #ffb52e)';
+            } else {
+                healthFill.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)';
+            }
+            
+            healthDisplay.textContent = `Health: ${player.health}/150`;
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            // Add this near the start of the update function
+            if (isRightMouseDown) {
+                shootBullet();
+            }
+
+            // Player movement
+            if (keys['ArrowLeft'] && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] && player.x < canvas.width - player.width) {
+                player.x += player.speed;
+            }
+
+            // Update gun position
+            player.gun.x = player.x + PLAYER_WIDTH/2;
+            player.gun.y = player.y + PLAYER_HEIGHT/2;
+
+            // Spawn blocks if needed
+            if (blocks.length === 0) {
+                spawnBlock();
+            }
+
+            // Update bullets
+            bullets = bullets.filter(bullet => {
+                bullet.x += bullet.dx * bullet.speed;
+                bullet.y += bullet.dy * bullet.speed;
+                return bullet.x > 0 && bullet.x < canvas.width && 
+                       bullet.y > 0 && bullet.y < canvas.height;
+            });
+
+            // Update blocks and check collisions
+            blocks = blocks.filter(block => {
+                block.y += BLOCK_SPEED;
+
+                // Check bullet collisions
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const bullet = bullets[i];
+                    if (checkCollision(bullet, block)) {
+                        // Remove bullet
+                        bullets.splice(i, 1);
+                        // Create explosion
+                        createExplosion(block.x + BLOCK_WIDTH/2, block.y + BLOCK_HEIGHT/2, 'red');
+                        // Add health and update display
+                        player.health = Math.min(150, player.health + 5);
+                        updateHealthDisplay();
+                        blocksDestroyed++;
+                        
+                        // Check if round is complete
+                        if (blocksDestroyed >= blocksInRound) {
+                            currentRound++;
+                            blocksInRound++;
+                            blocksDestroyed = 0;
+                            roundDisplay.textContent = `Round: ${currentRound}`;
+                        }
+                        // Remove block
+                        return false;
+                    }
+                }
+
+                // Check if block passes player
+                if (block.y + block.height > canvas.height) {
+                    // Reduce health when block passes
+                    player.health -= 20;
+                    updateHealthDisplay();
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Check game over
+            if (player.health <= 0) {
+                gameOver = true;
+            }
+
+            // Update particles
+            particles = particles.filter(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life--;
+                particle.dy += 0.2; // Add gravity effect
+                return particle.life > 0;
+            });
+        }
+
+        // Add these constants for the star background
+        const STAR_COUNT = 200;
+        const stars = [];
+
+        // Add this function to create stars
+        function createStars() {
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    brightness: Math.random()
+                });
+            }
+        }
+
+        // Add these constants after the star constants
+        const MOON_RADIUS = 50;
+        const UFO_COUNT = 3;
+        const ufos = [];
+
+        // Add this UFO creation function
+        function createUFOs() {
+            for (let i = 0; i < UFO_COUNT; i++) {
+                ufos.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * (canvas.height / 2), // Keep UFOs in upper half
+                    size: 30 + Math.random() * 20,
+                    speed: 0.5 + Math.random() * 1,
+                    lights: Array(3).fill().map(() => Math.random()), // Blinking lights
+                    direction: Math.random() < 0.5 ? -1 : 1 // Random direction
+                });
+            }
+        }
+
+        // Add these drawing functions
+        function drawMoon() {
+            // Moon glow
+            ctx.shadowBlur = 50;
+            ctx.shadowColor = 'rgba(255, 255, 200, 0.5)';
+            
+            // Moon
+            const gradient = ctx.createRadialGradient(
+                70, 70, MOON_RADIUS * 0.2,
+                70, 70, MOON_RADIUS
+            );
+            gradient.addColorStop(0, '#fff9e6');
+            gradient.addColorStop(1, '#ffcc00');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(70, 70, MOON_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Moon craters
+            ctx.fillStyle = 'rgba(169, 169, 169, 0.3)';
+            [
+                [45, 60, 8],
+                [80, 50, 6],
+                [65, 80, 10],
+                [90, 75, 7]
+            ].forEach(([x, y, r]) => {
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function drawUFO(ufo) {
+            ctx.save();
+            
+            // UFO glow
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00ff00';
+            
+            // UFO dome
+            ctx.fillStyle = '#303030';
+            ctx.beginPath();
+            ctx.ellipse(ufo.x, ufo.y, ufo.size * 0.4, ufo.size * 0.25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // UFO base
+            ctx.fillStyle = '#505050';
+            ctx.beginPath();
+            ctx.ellipse(ufo.x, ufo.y + 5, ufo.size * 0.6, ufo.size * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // UFO lights
+            ufo.lights.forEach((light, i) => {
+                const brightness = (Math.sin(Date.now() * 0.01 + light * 10) + 1) / 2;
+                ctx.fillStyle = `rgba(0, 255, 0, ${brightness})`;
+                ctx.beginPath();
+                const x = ufo.x + (i - 1) * (ufo.size * 0.3);
+                ctx.arc(x, ufo.y + 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            ctx.restore();
+        }
+
+        // Modify the drawBackground function
+        function drawBackground() {
+            // Draw deep space
+            const spaceGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            spaceGradient.addColorStop(0, '#000033');
+            spaceGradient.addColorStop(1, '#000066');
+            ctx.fillStyle = spaceGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw stars
+            stars.forEach(star => {
+                const twinkle = 0.5 + Math.random() * 0.5;
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness * twinkle})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw moon
+            drawMoon();
+            
+            // Draw and update UFOs
+            ufos.forEach(ufo => {
+                // Move UFOs
+                ufo.x += ufo.speed * ufo.direction;
+                
+                // Wrap UFOs around screen
+                if (ufo.x > canvas.width + ufo.size) {
+                    ufo.x = -ufo.size;
+                } else if (ufo.x < -ufo.size) {
+                    ufo.x = canvas.width + ufo.size;
+                }
+                
+                drawUFO(ufo);
+            });
+        }
+
+        // Modify the block drawing code to make them look like meteors
+        function drawMeteor(block) {
+            // Meteor glow
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff6600';
+            
+            // Meteor body gradient
+            const gradient = ctx.createRadialGradient(
+                block.x + block.width/2, block.y + block.height/2, 0,
+                block.x + block.width/2, block.y + block.height/2, block.width/2
+            );
+            gradient.addColorStop(0, '#ff9933');
+            gradient.addColorStop(0.5, '#ff6600');
+            gradient.addColorStop(1, '#ff3300');
+            
+            ctx.fillStyle = gradient;
+            
+            // Draw meteor shape
+            ctx.beginPath();
+            ctx.moveTo(block.x + block.width/2, block.y);
+            ctx.lineTo(block.x + block.width, block.y + block.height/2);
+            ctx.lineTo(block.x + block.width/2, block.y + block.height);
+            ctx.lineTo(block.x, block.y + block.height/2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+            
+            // Draw meteor trail
+            const trailGradient = ctx.createLinearGradient(
+                block.x + block.width/2, block.y,
+                block.x + block.width/2, block.y - 30
+            );
+            trailGradient.addColorStop(0, 'rgba(255, 102, 0, 0.5)');
+            trailGradient.addColorStop(1, 'rgba(255, 102, 0, 0)');
+            ctx.fillStyle = trailGradient;
+            ctx.fillRect(block.x, block.y - 30, block.width, 30);
+        }
+
+        // Modify the draw function
+        function draw() {
+            // Draw space background
+            drawBackground();
+            
+            // Draw player character
+            drawCharacter(player.x, player.y);
+            
+            // Draw meteors instead of blocks
+            blocks.forEach(block => {
+                drawMeteor(block);
+            });
+            
+            // Draw gun
+            ctx.save();
+            ctx.translate(player.gun.x, player.gun.y);
+            ctx.rotate(player.gun.angle);
+            ctx.fillStyle = 'gray';
+            ctx.fillRect(0, -GUN_HEIGHT/2, GUN_WIDTH, GUN_HEIGHT);
+            ctx.restore();
+
+            // Draw bullets with glow effect
+            ctx.fillStyle = bulletColor;  // Use the custom color
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = bulletColor;  // Use the custom color for glow
+            bullets.forEach(bullet => {
+                ctx.save();
+                ctx.translate(bullet.x, bullet.y);
+                ctx.rotate(bullet.angle);
+                ctx.fillRect(0, -bullet.height/2, bullet.width, bullet.height);
+                ctx.restore();
+            });
+            ctx.shadowBlur = 0;
+
+            // Draw particles
+            particles.forEach(particle => {
+                ctx.fillStyle = particle.color;
+                ctx.globalAlpha = particle.life / PARTICLE_LIFE;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Draw crosshair
+            drawCrosshair(mouseX, mouseY);
+
+            // Draw game over
+            if (gameOver) {
+                const finalScore = calculateScore(currentRound, player.health);
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
+                ctx.font = '24px Arial';
+                ctx.fillText(`Final Round: ${currentRound}`, canvas.width / 2, canvas.height / 2 + 40);
+                ctx.fillText(`Score: ${finalScore}`, canvas.width / 2, canvas.height / 2 + 70);
+                
+                // Save score only once when game ends
+                if (!player.scoreSaved) {
+                    saveScore(playerName, currentRound, finalScore);
+                    player.scoreSaved = true;
+                }
+                
+                // Show restart button
+                document.getElementById('restartButton').style.display = 'block';
+            }
+        }
+
+        function gameLoop() {
+            if (!gameStarted) return;
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Add this function to draw crosshair
+        function drawCrosshair(x, y) {
+            const size = 20;
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            
+            // Draw circle
+            ctx.beginPath();
+            ctx.arc(x, y, size/2, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Draw cross
+            ctx.beginPath();
+            ctx.moveTo(x - size/2, y);
+            ctx.lineTo(x + size/2, y);
+            ctx.moveTo(x, y - size/2);
+            ctx.lineTo(x, y + size/2);
+            ctx.stroke();
+        }
+
+        // Add mousedown event for continuous shooting with left click
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // Left click (0 is left, 2 was right)
+                isRightMouseDown = true;  // We can keep the variable name, just using it for left click now
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 0) { // Left click
+                isRightMouseDown = false;
+            }
+        });
+
+        // Add event listener for restart button
+        document.getElementById('restartButton').addEventListener('click', resetGame);
+
+        // Start the game
+        gameLoop();
+
+        function resetGame() {
+            // Reset game state
+            currentRound = 1;
+            blocksInRound = 1;
+            blocksDestroyed = 0;
+            gameOver = false;
+            player.health = 100;
+            blocks = [];
+            bullets = [];
+            particles = [];
+            
+            // Reset displays
+            updateHealthDisplay();
+            roundDisplay.textContent = `Round: ${currentRound}`;
+            
+            // Hide restart button
+            document.getElementById('restartButton').style.display = 'none';
+            
+            // Reset stars
+            stars.length = 0;
+            createStars();
+            
+            // Reset UFOs
+            ufos.length = 0;
+            createUFOs();
+            document.getElementById('playerNameDisplay').textContent = `${playerName}'s Score: `;
+            player.scoreSaved = false;
+        }
+
+        // Add createStars() call at the start of the game
+        createStars();
+
+        // Add UFO creation to the initial setup and reset
+        createUFOs();
+
+        // Add these event listeners after the other event listeners
+        document.getElementById('characterColor').addEventListener('input', (e) => {
+            characterColor = e.target.value;
+        });
+
+        document.getElementById('bulletColor').addEventListener('input', (e) => {
+            bulletColor = e.target.value;
+        });
+
+        // Add this function to start the game
+        function startGame() {
+            const nameInput = document.getElementById('playerName');
+            playerName = nameInput.value.trim() || 'Player';
+            document.getElementById('playerNameDisplay').textContent = `${playerName}'s Score: `;
+            document.getElementById('namePrompt').style.display = 'none';
+            gameStarted = true;
+            createStars();
+            createUFOs();
+            gameLoop();
+        }
+
+        // Add these functions for leaderboard management
+        function saveScore(name, round, score) {
+            let scores = JSON.parse(localStorage.getItem('scores') || '[]');
+            scores.push({ name, round, score, date: Date.now() });
+            scores.sort((a, b) => b.score - a.score);
+            localStorage.setItem('scores', JSON.stringify(scores));
+            updateLeaderboard();
+        }
+
+        function updateLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('scores') || '[]');
+            const leaderboardBody = document.getElementById('leaderboardBody');
+            leaderboardBody.innerHTML = '';
+
+            scores.slice(0, 10).forEach((score, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${score.name}</td>
+                    <td>${score.round}</td>
+                    <td>${score.score}</td>
+                `;
+                leaderboardBody.appendChild(row);
+            });
+        }
+
+        function calculateScore(round, health) {
+            return (round - 1) * 1000 + health * 10;
+        }
+
+        // Call this when the page loads
+        updateLeaderboard();
+    </script>
+</body>
+</html> 
